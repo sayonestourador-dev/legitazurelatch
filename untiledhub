@@ -29,14 +29,13 @@ local Window = Rayfield:CreateWindow({
 
     Discord = {
         Enabled = true,
-        -- SUBSTITUA "YOUR_INVITE_CODE" PELO CÓDIGO DO SEU CONVITE DO DISCORD!
-        -- EXAMPLE: se o link for discord.gg/abcde, o código é "abcde"
-        Invite = "ftSrGjpxJZ", 
+        Invite = "ftSrGjpxJZ",
         RememberJoins = true
     },
 
     KeySystem = false
 })
+
 -- Serviços
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -92,7 +91,7 @@ local function startMagnet()
                     end
                 end
             end
-            task.wait(0.12) -- levemente mais leve que 0.1
+            task.wait(0.12) -- levemente mais leve
         end
     end)
 end
@@ -111,7 +110,7 @@ Tab1:CreateToggle({
 
 Tab1:CreateSlider({
     Name = "Magnet Range",
-    Range = {5, 24}, -- range máximo limitado
+    Range = {5, 24},
     Increment = 0.5,
     Suffix = " studs",
     CurrentValue = magnetRange,
@@ -151,7 +150,38 @@ Tab2:CreateToggle({
     Callback = function(Value) _G.autoFormlessEnabled = Value end
 })
 
-Tab2:CreateLabel("When enabled, press 'T' to use.")
+Tab2:CreateLabel("When enabled, press 'T' (PC) or use Mobile Button.")
+
+-- Botão para Mobile
+Tab2:CreateButton({
+    Name = "Mobile Formless",
+    Callback = function()
+        if not _G.autoFormlessEnabled then return end
+
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        local hum = character and character:FindFirstChildOfClass("Humanoid")
+        if not (hrp and hum) then return end
+
+        hum.AutoRotate = false
+        hrp.CFrame *= CFrame.Angles(0, math.rad(180), 0)
+
+        local oldType, oldSubject = Camera.CameraType, Camera.CameraSubject
+        Camera.CameraType, Camera.CFrame = Enum.CameraType.Scriptable, hrp.CFrame + Vector3.new(0, 2, 0)
+
+        task.delay(0.1, function()
+            if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+                Camera.CameraSubject, Camera.CameraType = player.Character:FindFirstChildOfClass("Humanoid"), Enum.CameraType.Custom
+            else
+                Camera.CameraSubject, Camera.CameraType = oldSubject, oldType
+            end
+            hum.AutoRotate = true
+        end)
+
+        task.wait(0.05)
+        ByteNetReliable:FireServer(buffer.fromstring("\021\001"), { { "kick", 24, false, Vector3.new(0, 1.5, 0) } })
+        ByteNetReliable:FireServer(buffer.fromstring("\021\001"), { { "skill1" } })
+    end
+})
 
 -- ===================== EVENT LISTENERS =====================
 
@@ -191,7 +221,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Auto Formless Input
+-- Auto Formless Input (PC - tecla T)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not (_G.autoFormlessEnabled and not gameProcessed and input.KeyCode == Enum.KeyCode.T and UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter) then
         return
